@@ -1,8 +1,8 @@
 # Fdb version 3
-["pdflatex"] 1728844546 "/home/kuba/Documents/ERASMUS/BD/BIG_DATA_INDIVIDUAL_TASKS_JAKUB_JAZDZYK/Task1/rapport.tex" "/home/kuba/Documents/ERASMUS/BD/BIG_DATA_INDIVIDUAL_TASKS_JAKUB_JAZDZYK/Task1/rapport.pdf" "rapport" 1728844547
+["pdflatex"] 1728844546 "/home/kuba/Documents/ERASMUS/BD/BIG_DATA_INDIVIDUAL_TASKS_JAKUB_JAZDZYK/Task1/rapport.tex" "/home/kuba/Documents/ERASMUS/BD/BIG_DATA_INDIVIDUAL_TASKS_JAKUB_JAZDZYK/Task1/rapport.pdf" "rapport" 1728844566
   "/etc/texmf/web2c/texmf.cnf" 1679263390 475 c0e671620eb5563b2130f56340a5fde8 ""
   "/home/kuba/Documents/ERASMUS/BD/BIG_DATA_INDIVIDUAL_TASKS_JAKUB_JAZDZYK/Task1/rapport.aux" 1728844547 1971 f30041b114e08306c715599cfeb911f5 ""
-  "/home/kuba/Documents/ERASMUS/BD/BIG_DATA_INDIVIDUAL_TASKS_JAKUB_JAZDZYK/Task1/rapport.tex" 1728844546 6256 ea907059e10f225a6194e7ec87bce89a ""
+  "/home/kuba/Documents/ERASMUS/BD/BIG_DATA_INDIVIDUAL_TASKS_JAKUB_JAZDZYK/Task1/rapport.tex" 1728844566 6256 ea907059e10f225a6194e7ec87bce89a ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
@@ -158,10 +158,10 @@
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1700061957 4770781 1ed1abab22da9c3e2cc82e4db562318b ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1710849489 8256373 5cc9eb171d10c29717c851a913daee30 ""
   "rapport.aux" 1728844547 1971 f30041b114e08306c715599cfeb911f5 "pdflatex"
-  "rapport.tex" 1728844546 6256 ea907059e10f225a6194e7ec87bce89a ""
+  "rapport.tex" 1728844566 6256 ea907059e10f225a6194e7ec87bce89a ""
   (generated)
-  "/home/kuba/Documents/ERASMUS/BD/BIG_DATA_INDIVIDUAL_TASKS_JAKUB_JAZDZYK/Task1/rapport.pdf"
+  "rapport.pdf"
   "/home/kuba/Documents/ERASMUS/BD/BIG_DATA_INDIVIDUAL_TASKS_JAKUB_JAZDZYK/Task1/rapport.log"
   "rapport.aux"
   "rapport.log"
-  "rapport.pdf"
+  "/home/kuba/Documents/ERASMUS/BD/BIG_DATA_INDIVIDUAL_TASKS_JAKUB_JAZDZYK/Task1/rapport.pdf"

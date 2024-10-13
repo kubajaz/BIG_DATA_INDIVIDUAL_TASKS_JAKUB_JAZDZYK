@@ -1,0 +1,13 @@
+rapport.aux
+rapport.fdb_latexmk
+rapport.fls
+rapport.log
+rapport.synctex.gz
+
+.vscode/
+
+*.o
+*.out
+*.exe
+matrix  # Ignore the executable generated from matrix.c
+*.gch
