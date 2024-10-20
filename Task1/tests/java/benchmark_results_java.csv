@@ -1,5 +1,0 @@
-Matrix Size,Execution Time (s),Memory Used (MB),CPU Usage (%)
-10,0.014000,0.64,Infinity
-100,0.010000,0.00,99.98
-300,0.080000,2.33,100.08
-600,0.996000,2.90,99.44

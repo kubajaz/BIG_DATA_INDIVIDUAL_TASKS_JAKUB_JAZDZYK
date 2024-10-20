@@ -54,7 +54,7 @@ public class Benchmark {
     }
 
     public static void main(String[] args) {
-        int[] sizes = {10, 100, 300, 600};
+        int[] sizes = {10, 80, 200, 800};
         int numTests = 3;
         BenchmarkResult[] results = new BenchmarkResult[sizes.length];
 

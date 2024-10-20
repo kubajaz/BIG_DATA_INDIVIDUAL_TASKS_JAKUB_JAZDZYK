@@ -40,7 +40,7 @@ void multiply_matrices(int n) {
 }
 
 int main() {
-    int sizes[] = {10, 20, 30, 40};
+    int sizes[] = {10, 80, 200, 800};
     FILE *fp = fopen("benchmark_results.csv", "w");
     
     fprintf(fp, "Matrix Size,Avg Execution Time (s),Avg Memory Usage (KB),Avg CPU Usage (%)\n");
@@ -63,7 +63,7 @@ int main() {
             getrusage(RUSAGE_SELF, &usage);
             total_memory += usage.ru_maxrss; 
 
-            total_cpu += (double)(usage.ru_utime.tv_sec + usage.ru_utime.tv_usec / 1e6) / time_spent * 100.0; // CPU w %
+            total_cpu += (double)(usage.ru_utime.tv_sec + usage.ru_utime.tv_usec / 1e6) / time_spent * 100.0;
 
             printf("Benchmark for n=%d (run %d): %.6f seconds, Memory: %ld KB, CPU Usage: %.2f%%\n", n, j + 1, time_spent, usage.ru_maxrss, (usage.ru_utime.tv_sec + usage.ru_utime.tv_usec / 1e6) / time_spent * 100.0);
         }

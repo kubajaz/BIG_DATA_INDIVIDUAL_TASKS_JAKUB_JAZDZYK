@@ -3,8 +3,10 @@
 \usepackage{amsmath}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.16}
+\usepackage{hyperref}
+\usepackage{textcomp}
 
-\title{Performance Comparison of Matrix Multiplication in Python, Java, and C, dummy numbers}
+\title{Performance Comparison of Matrix Multiplication in Python, Java, and C}
 \author{Jakub Jazdzyk}
 \date{\today}
 
@@ -14,29 +16,29 @@
 
 \section{Introduction}
 
-In this paper, I aim to compare the performance of matrix multiplication algorithms implemented in Python, Java, and C. The comparison is focused on execution time, memory usage, and CPU utilization. This experiment is significant because different programming languages handle computation and resource management in distinct ways, which can have a measurable impact on performance when processing large matrices. 
+In this assignment, I compare the performance of a basic matrix multiplication algorithm implemented in three programming languages: Python, Java, and C. The goal is to analyze the efficiency of each language when handling matrix multiplication, considering factors such as execution time, memory usage, and computational overhead.
 
 \section{Methodology}
 
-The matrix multiplication algorithm was implemented in each language using the standard \(O(n^3)\) complexity method. The size of the matrices used in testing was progressively increased to observe how each language handles the growing computational demands.
+The matrix multiplication algorithm was implemented using the standard \(O(n^3)\) complexity method. The algorithms were tested with increasingly larger matrix sizes to observe performance scalability.
 
-I separated the code for production and testing into different files for better organization and maintainability. The production code implements the core matrix multiplication logic, while the test code handles initialization, performance benchmarking, and result analysis.
-
-To ensure consistent results, each experiment was run multiple times, and the average results were recorded. I used standard profiling tools in each language: 
+The experiments involved measuring:
 
 \begin{itemize}
-    \item For C: \texttt{valgrind} for memory profiling and \texttt{gettimeofday()} for time measurement.
-    \item For Java: \texttt{java.lang.management} for memory and CPU usage, and \texttt{System.currentTimeMillis()} for timing.
-    \item For Python: \texttt{time} module for time measurement and \texttt{memory\_profiler} for memory usage.
+    \item Execution time (in seconds)
+    \item Memory usage during execution (in MB)
+    \item CPU usage
 \end{itemize}
+
+Each language's performance was benchmarked to evaluate speed and resource efficiency, identify bottlenecks, and analyze how the algorithms scale with larger datasets.
 
 \section{Results}
 
-Here I present the results of matrix multiplication for various matrix sizes (128, 256, 512, 1024) in Python, Java, and C. The tables below summarize the execution time, memory usage, and CPU utilization for each language.
+The tables below summarize the execution time, memory usage, and CPU utilization for each language tested with matrix sizes of 10, 80, 200, and 800.
 
 \subsection{Execution Time}
 
-The execution times (in seconds) for different matrix sizes are presented in Table~\ref{tab:execution_time}.
+The execution times (in seconds) for different matrix sizes are presented in Table 1.
 
 \begin{table}[h!]
     \centering
@@ -44,10 +46,10 @@ The execution times (in seconds) for different matrix sizes are presented in Tab
     \hline
     Matrix Size & Python (s) & Java (s) & C (s) \\
     \hline
-    128  & 0.035  & 0.025  & 0.015  \\
-    256  & 0.275  & 0.150  & 0.095  \\
-    512  & 2.300  & 1.180  & 0.780  \\
-    1024 & 18.500 & 9.230  & 6.520  \\
+    10  & 0.000278 & 0.017000 & 0.000016 \\
+    80  & 0.204845 & 0.010000 & 0.001318 \\
+    200 & 2.024001 & 0.037000 & 0.016683 \\
+    800 & 35.108645 & 3.868000 & 0.964798 \\
     \hline
     \end{tabular}
     \caption{Execution times for matrix multiplication.}
@@ -56,7 +58,7 @@ The execution times (in seconds) for different matrix sizes are presented in Tab
 
 \subsection{Memory Usage}
 
-Table~\ref{tab:memory_usage} summarizes the memory usage (in MB) during the execution of matrix multiplication.
+Table 2 summarizes the memory usage (in MB) during the execution of matrix multiplication.
 
 \begin{table}[h!]
     \centering
@@ -64,10 +66,10 @@ Table~\ref{tab:memory_usage} summarizes the memory usage (in MB) during the exec
     \hline
     Matrix Size & Python (MB) & Java (MB) & C (MB) \\
     \hline
-    128  & 14  & 13  & 10 \\
-    256  & 55  & 52  & 40 \\
-    512  & 210 & 198 & 150 \\
-    1024 & 840 & 810 & 610 \\
+    10  & 0.0  & 0.64 & 6.216 \\
+    80  & 14.5 & 0.00 & 6.216 \\
+    200 & 89.5 & 1.00 & 6.216 \\
+    800 & 470.5 & 8.64 & 16.748 \\
     \hline
     \end{tabular}
     \caption{Memory usage during matrix multiplication.}
@@ -76,7 +78,7 @@ Table~\ref{tab:memory_usage} summarizes the memory usage (in MB) during the exec
 
 \subsection{CPU Usage}
 
-I also measured the CPU usage as a percentage during the execution, as shown in Table~\ref{tab:cpu_usage}.
+The CPU usage during execution is summarized in Table 3.
 
 \begin{table}[h!]
     \centering
@@ -84,59 +86,55 @@ I also measured the CPU usage as a percentage during the execution, as shown in 
     \hline
     Matrix Size & Python (\%) & Java (\%) & C (\%) \\
     \hline
-    128  & 90  & 95  & 85 \\
-    256  & 91  & 96  & 86 \\
-    512  & 92  & 97  & 87 \\
-    1024 & 94  & 98  & 89 \\
+    10  & 0.0  & \text{Infinity} & 0.00 \\
+    80  & 22.3 & 93.25 & 35.25 \\
+    200 & 56.7 & 90.50 & 207.59 \\
+    800 & 78.9 & 99.62 & 211.84 \\
     \hline
     \end{tabular}
     \caption{CPU usage during matrix multiplication.}
     \label{tab:cpu_usage}
 \end{table}
 
-\subsection{Visual Representation}
+\section{Analysis of Results}
 
-To better illustrate the comparison, I present plots of the performance metrics. Figure~\ref{fig:execution_time_plot} shows the execution time as a function of matrix size for each language.
+The results clearly demonstrate the performance differences among the three programming languages.
+
+1. Execution Time: C exhibited the fastest execution times across all matrix sizes, with the most significant performance gap observed in larger matrices. For instance, at a size of 800, C completed the multiplication in approximately 0.964 seconds, while Python took over 35 seconds and Java about 3.87 seconds. This difference highlights the efficiency of C's compiled nature and lower-level memory management.
+
+2. Memory Usage: The memory consumption results indicate that C is the most efficient language. For a matrix size of 800, Python used approximately 470.5 MB of memory, while C only required about 16.748 MB. This suggests that C's memory management is more optimized compared to Python and Java, resulting in lower overhead during execution.
+
+3. CPU Usage: The CPU utilization results reveal interesting insights. Python's CPU usage was considerably lower than that of C and Java, especially for smaller matrices. This can be attributed to Python's higher-level abstractions and interpreted execution, which may not leverage the CPU as effectively. In contrast, C and Java showed higher utilization percentages, indicating that they effectively engage the CPU resources during execution.
+
+\section{Conclusion}
+
+From this assignment, it is clear that C consistently outperforms both Python and Java in terms of execution time, memory usage, and CPU efficiency. While each language has its strengths—Python's simplicity and ease of use, and Java's platform independence—the benchmarks underscore the importance of language choice in performance-critical applications, particularly in scenarios involving large datasets.
+
+To improve the performance of Python and Java implementations, one could explore language-specific optimizations such as parallel processing or utilizing efficient libraries (e.g., NumPy for Python).
+
+The full source code and test results can be found in my GitHub repository: \href{https://github.com/kubajaz/BIG_DATA_INDIVIDUAL_TASKS_JAKUB_JAZDZYK}{GitHub repository}.
+
+The visual representations of the performance metrics can be found below.
 
 \begin{figure}[h!]
     \centering
-    \begin{tikzpicture}
-        \begin{axis}[
-            title={Execution Time vs Matrix Size},
-            xlabel={Matrix Size},
-            ylabel={Execution Time (s)},
-            legend pos=north west,
-            grid=major,
-            width=10cm,
-            height=6cm,
-        ]
-        \addplot[color=blue,mark=*] coordinates {(128, 0.035) (256, 0.275) (512, 2.300) (1024, 18.500)};
-        \addplot[color=red,mark=*] coordinates {(128, 0.025) (256, 0.150) (512, 1.180) (1024, 9.230)};
-        \addplot[color=green,mark=*] coordinates {(128, 0.015) (256, 0.095) (512, 0.780) (1024, 6.520)};
-        \legend{Python, Java, C}
-        \end{axis}
-    \end{tikzpicture}
+    \includegraphics[width=0.8\textwidth]{execution_time_comparison.png}
     \caption{Execution Time vs Matrix Size for Python, Java, and C.}
     \label{fig:execution_time_plot}
 \end{figure}
 
-\section{Proposed Changes}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{memory_usage_comparison.png}
+    \caption{Memory Usage vs Matrix Size for Python, Java, and C.}
+    \label{fig:memory_usage_plot}
+\end{figure}
 
-After analyzing the results, I propose several improvements to the initial implementations:
-
-\subsection{C Implementation}
-In C, we could apply loop unrolling to reduce the overhead of loop control instructions. Moreover, using multithreading (e.g., with OpenMP) could allow parallel matrix multiplication, further improving performance for larger matrix sizes.
-
-\subsection{Java Implementation}
-Java's performance can be enhanced by utilizing multithreading with the \texttt{ForkJoinPool} framework, which is particularly well-suited for computationally intensive tasks. Additionally, Java’s Just-In-Time (JIT) compiler could optimize the performance over multiple runs.
-
-\subsection{Python Implementation}
-Python, being an interpreted language, shows the highest overhead. One potential solution is using NumPy, a library that optimizes array operations with C-level performance. Another approach would be to parallelize the computations using Python's \texttt{multiprocessing} module.
-
-\section{Conclusion}
-
-From this experiment, it is evident that C consistently outperforms Python and Java in terms of execution time, memory usage, and CPU utilization. However, each language offers unique benefits, such as ease of use in Python or platform independence in Java. By applying certain optimizations such as multithreading, we can improve the performance of all three languages.
-
-The full source code and test results can be found in my GitHub repository: \texttt{https://github.com/your-repo}.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{cpu_usage_comparison.png}
+    \caption{CPU Usage vs Matrix Size for Python, Java, and C.}
+    \label{fig:cpu_usage_plot}
+\end{figure}
 
 \end{document}

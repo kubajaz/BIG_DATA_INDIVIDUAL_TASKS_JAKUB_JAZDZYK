@@ -1,0 +1,5 @@
+Matrix Size,Avg Execution Time (s),Avg Memory Usage (KB),Avg CPU Usage (%)
+10,0.000016,6216,0.00
+80,0.001318,6216,35.25
+200,0.016683,6216,207.59
+800,0.964798,16748,211.84
