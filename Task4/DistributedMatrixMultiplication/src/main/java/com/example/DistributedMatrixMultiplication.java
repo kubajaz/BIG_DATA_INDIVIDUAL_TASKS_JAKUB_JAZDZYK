@@ -4,6 +4,7 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IExecutorService;
 import com.hazelcast.config.Config;
+import com.hazelcast.cluster.Member;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 public class DistributedMatrixMultiplication {
     static class MatrixBlock implements Serializable {
@@ -32,7 +34,6 @@ public class DistributedMatrixMultiplication {
         }
 
     }
-
 
     static class MatrixMultiplicationTask implements Callable<MatrixBlock>, Serializable {
         private MatrixBlock aBlock;
@@ -72,7 +73,7 @@ public class DistributedMatrixMultiplication {
             return new MatrixBlock(result, resultRowStart, resultColStart);
         }
     }
-    public static double[][] multiplyMatricesDistributed(double[][] a, double[][] b, int blockSize, IExecutorService executorService) throws ExecutionException, InterruptedException {
+    public static double[][] multiplyMatricesDistributed(double[][] a, double[][] b, int blockSize, IExecutorService executorService, HazelcastInstance instance) throws ExecutionException, InterruptedException {
 
         int rowsA = a.length;
         int colsA = a[0].length;
@@ -101,14 +102,15 @@ public class DistributedMatrixMultiplication {
                     double[][] bBlockData = getSubMatrix(b, k, j, bBlockRowsEnd, bBlockColsEnd);
                     int commonSize = bBlockData.length;
 
-
                     MatrixBlock aBlock = new MatrixBlock(aBlockData, i, k);
                     MatrixBlock bBlock = new MatrixBlock(bBlockData, k, j);
 
+                    // Send tasks to all members
                     MatrixMultiplicationTask task = new MatrixMultiplicationTask(aBlock, bBlock, commonSize, i, j);
-
-                    Future<MatrixBlock> future = executorService.submit(task);
-                    futures.add(future);
+                    for(Member member: instance.getCluster().getMembers()){
+                        Future<MatrixBlock> future = executorService.submitToMember(task, member);
+                        futures.add(future);
+                    }
                 }
             }
         }
@@ -154,6 +156,7 @@ public class DistributedMatrixMultiplication {
         config.getNetworkConfig().setPortAutoIncrement(false);
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         IExecutorService executorService = instance.getExecutorService("default");
+        System.out.println("Node Started: " + instance.getCluster().getLocalMember().getAddress());
 
         // Check if this is the first member of the cluster
         if (instance.getCluster().getMembers().stream().findFirst().get().localMember()) {
@@ -165,7 +168,6 @@ public class DistributedMatrixMultiplication {
 
             double[][] matrixA = new double[rows][cols];
             double[][] matrixB = new double[rows][cols];
-
             for (int i = 0; i < rows; i++) {
                 for (int j = 0; j < cols; j++) {
                     matrixA[i][j] = Math.random();
@@ -173,14 +175,16 @@ public class DistributedMatrixMultiplication {
                 }
             }
 
+
             int blockSize = 100;
 
             long startTime = System.currentTimeMillis();
-            double[][] resultMatrix = multiplyMatricesDistributed(matrixA, matrixB, blockSize, executorService);
+            double[][] resultMatrix = multiplyMatricesDistributed(matrixA, matrixB, blockSize, executorService, instance);
             long endTime = System.currentTimeMillis();
             System.out.println("Distributed Multiplication Time: " + (endTime - startTime) + "ms");
         } else {
-            System.out.println("This node is a cluster member, waiting for the main node to trigger calculation.");
+            System.out.println("This node is a cluster member, waiting for the main node to trigger calculation.  Address: " + instance.getCluster().getLocalMember().getAddress());
         }
+
     }
 }
