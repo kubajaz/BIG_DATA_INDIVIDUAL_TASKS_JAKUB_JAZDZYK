@@ -28,7 +28,7 @@ class MatrixMultiplication {
     }
 
     public static void main(String[] args) {
-        int size = 600; // Rozmiar macierzy
+        int size = 2400; // Rozmiar macierzy
         double[][] matrixA = new double[size][size];
         double[][] matrixB = new double[size][size];
 
