@@ -1,10 +1,9 @@
 package com.example;
 
-import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IExecutorService;
+import com.hazelcast.core.*;
 import com.hazelcast.config.Config;
 import com.hazelcast.cluster.Member;
+
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -14,156 +13,118 @@ import java.util.concurrent.Future;
 public class DistributedMatrixMultiplication {
 
     static class MatrixMultiplicationTask implements Callable<double[][]>, Serializable {
-        private int commonSize;
-        private int resultRowStart;
-        private int resultColStart;
-        private String taskId;
-        private int aRows;
-        private int bCols;
-        private int colsA;
+        private final double[][] matrixA;
+        private final double[][] matrixB;
+        private final int rowStart;
+        private final int rowEnd;
+        private final int colStart;
+        private final int colEnd;
 
-        public MatrixMultiplicationTask(int commonSize, int resultRowStart, int resultColStart, String taskId, int aRows, int bCols, int colsA) {
-            this.commonSize = commonSize;
-            this.resultRowStart = resultRowStart;
-            this.resultColStart = resultColStart;
-            this.taskId = taskId;
-            this.aRows = aRows;
-            this.bCols = bCols;
-            this.colsA = colsA;
+        public MatrixMultiplicationTask(double[][] matrixA, double[][] matrixB, int rowStart, int rowEnd, int colStart, int colEnd) {
+            this.matrixA = matrixA;
+            this.matrixB = matrixB;
+            this.rowStart = rowStart;
+            this.rowEnd = rowEnd;
+            this.colStart = colStart;
+            this.colEnd = colEnd;
         }
-
 
         @Override
         public double[][] call() {
-            HazelcastInstance instance = null;
-            while (instance == null) {
-                instance = Hazelcast.getHazelcastInstanceByName("dev");
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            String address = instance.getCluster().getLocalMember().getAddress().toString();
-            System.out.println("Obliczam mnożenie bloku macierzy, " + taskId + " na węźle: " + address);
-            double[][] matrixA = generateMatrix(aRows, colsA, resultRowStart, 0);
-            double[][] matrixB = generateMatrix(colsA, bCols, 0, resultColStart);
+            int rows = rowEnd - rowStart;
+            int cols = colEnd - colStart;
+            int commonSize = matrixA[0].length;
 
-            int aRows = matrixA.length;
-            int aCols = matrixA[0].length;
-            int bRows = matrixB.length;
-            int bCols = matrixB[0].length;
-            double[][] result = new double[aRows][bCols];
+            double[][] result = new double[rows][cols];
 
-            if (aCols != bRows) {
-                throw new IllegalArgumentException("Invalid matrix dimensions: A cols and B rows need to be equal.");
-            }
-
-            for (int i = 0; i < aRows; i++) {
-                for (int j = 0; j < bCols; j++) {
-                    for (int k = 0; k < aCols; k++) {
-                        result[i][j] += matrixA[i][k] * matrixB[k][j];
+            for (int i = rowStart; i < rowEnd; i++) {
+                for (int j = colStart; j < colEnd; j++) {
+                    for (int k = 0; k < commonSize; k++) {
+                        result[i - rowStart][j - colStart] += matrixA[i][k] * matrixB[k][j];
                     }
                 }
             }
-            System.out.println("Zakończono mnożenie bloku macierzy, " + taskId + " na węźle: " + address);
+
             return result;
         }
-        private double[][] generateMatrix(int rows, int cols, int rowStart, int colStart){
-            double[][] matrix = new double[rows][cols];
-            for(int i = 0; i< rows; i++){
-                for(int j= 0; j < cols; j++){
-                    matrix[i][j] = Math.random();
-                }
-            }
-            return matrix;
-        }
     }
-    public static double[][] multiplyMatricesDistributed(double[][] a, double[][] b, int blockSize, IExecutorService executorService, HazelcastInstance instance) throws ExecutionException, InterruptedException {
-        System.out.println("Rozpoczęto metodę multiplyMatricesDistributed");
+
+    public static double[][] multiplyMatricesDistributed(double[][] a, double[][] b, int blockSize, IExecutorService executorService, List<Member> members) throws ExecutionException, InterruptedException {
         int rowsA = a.length;
         int colsA = a[0].length;
         int rowsB = b.length;
         int colsB = b[0].length;
 
         if (colsA != rowsB) {
-            throw new IllegalArgumentException("Invalid matrix dimensions: A cols and B rows need to be equal.");
+            throw new IllegalArgumentException("Matrix dimensions do not match for multiplication.");
         }
-        int resultRows = rowsA;
-        int resultCols = colsB;
-        double[][] result = new double[resultRows][resultCols];
-        List<Member> members = new ArrayList<>(instance.getCluster().getMembers());
+
+        double[][] result = new double[rowsA][colsB];
+        List<Future<double[][]>> futures = new ArrayList<>();
         int numMembers = members.size();
         int taskCounter = 0;
 
-        List<Future<double[][]>> futures = new ArrayList<>();
         for (int i = 0; i < rowsA; i += blockSize) {
             for (int j = 0; j < colsB; j += blockSize) {
-                int aBlockRowsEnd = Math.min(i + blockSize, rowsA);
-                int bBlockColsEnd = Math.min(j + blockSize, colsB);
-                String taskId = String.valueOf(taskCounter++);
-                MatrixMultiplicationTask task = new MatrixMultiplicationTask(colsA, i, j, taskId, aBlockRowsEnd - i, bBlockColsEnd - j, colsA );
+                int rowEnd = Math.min(i + blockSize, rowsA);
+                int colEnd = Math.min(j + blockSize, colsB);
 
-                Future<double[][]> future = executorService.submitToMember(task, members.get(taskCounter % numMembers));
-                double[][] blockResult = future.get();
-                int rows = blockResult.length;
-                int cols = blockResult[0].length;
-                for(int row = 0; row < rows; row++){
-                    for(int col =0; col< cols; col++){
-                        result[i+row][j+col] += blockResult[row][col];
-                    }
+                MatrixMultiplicationTask task = new MatrixMultiplicationTask(a, b, i, rowEnd, j, colEnd);
+                Member targetMember = members.get(taskCounter % numMembers);
+                futures.add(executorService.submitToMember(task, targetMember));
+                taskCounter++;
+            }
+        }
+
+        for (int f = 0; f < futures.size(); f++) {
+            Future<double[][]> future = futures.get(f);
+            double[][] partialResult = future.get();
+
+            int i = (f / (colsB / blockSize)) * blockSize;
+            int j = (f % (colsB / blockSize)) * blockSize;
+            int rows = partialResult.length;
+            int cols = partialResult[0].length;
+
+            for (int row = 0; row < rows; row++) {
+                for (int col = 0; col < cols; col++) {
+                    result[i + row][j + col] = partialResult[row][col];
                 }
             }
         }
-        System.out.println("Zakończono metodę multiplyMatricesDistributed");
+
         return result;
     }
 
-
     public static void main(String[] args) throws ExecutionException, InterruptedException {
-        String localAddress = System.getProperty("hazelcast.local.localAddress");
-        if (localAddress == null || localAddress.isEmpty()) {
-            System.setProperty("hazelcast.local.localAddress", "192.168.1.194");
-        }
         Config config = new Config();
         config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
         config.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true)
                 .addMember("192.168.1.194")
                 .addMember("192.168.1.253");
-        config.getNetworkConfig().setPortAutoIncrement(false);
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         IExecutorService executorService = instance.getExecutorService("default");
-        System.out.println("Node Started: " + instance.getCluster().getLocalMember().getAddress());
 
-        // Wait for the cluster to have at least two members
         while (instance.getCluster().getMembers().size() < 2) {
-            System.out.println("Waiting for the second member to join the cluster...");
+            System.out.println("Waiting for other members...");
             Thread.sleep(1000);
         }
-        if (instance.getCluster().getMembers().stream().findFirst().get().localMember()) {
-            System.out.println("This node is the first member of the cluster. Starting distributed calculations.");
 
-            // Sample matrices
-            int rows = 1000;
-            int cols = 1000;
-            double[][] matrixA = new double[rows][cols];
-            double[][] matrixB = new double[rows][cols];
-            for (int i = 0; i < rows; i++) {
-                for (int j = 0; j < cols; j++) {
-                    matrixA[i][j] = Math.random();
-                    matrixB[i][j] = Math.random();
-                }
+        int size = 1000;
+        double[][] matrixA = new double[size][size];
+        double[][] matrixB = new double[size][size];
+
+        Random rand = new Random();
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                matrixA[i][j] = rand.nextDouble();
+                matrixB[i][j] = rand.nextDouble();
             }
-
-
-            int blockSize = 100;
-
-            long startTime = System.currentTimeMillis();
-            double[][] resultMatrix = multiplyMatricesDistributed(matrixA, matrixB, blockSize, executorService, instance);
-            long endTime = System.currentTimeMillis();
-            System.out.println("Distributed Multiplication Time: " + (endTime - startTime) + "ms");
-        } else {
-            System.out.println("This node is a cluster member, waiting for the main node to trigger calculation. Address: " + instance.getCluster().getLocalMember().getAddress());
         }
+
+        long startTime = System.currentTimeMillis();
+        double[][] result = multiplyMatricesDistributed(matrixA, matrixB, 100, executorService, new ArrayList<>(instance.getCluster().getMembers()));
+        long endTime = System.currentTimeMillis();
+
+        System.out.println("Distributed multiplication completed in: " + (endTime - startTime) + "ms");
     }
 }
