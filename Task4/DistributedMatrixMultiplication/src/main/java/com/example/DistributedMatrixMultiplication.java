@@ -23,7 +23,6 @@ public class DistributedMatrixMultiplication {
         private int bCols;
         private int colsA;
 
-
         public MatrixMultiplicationTask(int commonSize, int resultRowStart, int resultColStart, String taskId, int aRows, int bCols, int colsA) {
             this.commonSize = commonSize;
             this.resultRowStart = resultRowStart;
@@ -34,9 +33,9 @@ public class DistributedMatrixMultiplication {
             this.colsA = colsA;
         }
 
+
         @Override
         public double[][] call() {
-
             HazelcastInstance instance = null;
             while (instance == null) {
                 instance = Hazelcast.getHazelcastInstanceByName("dev");
@@ -50,7 +49,6 @@ public class DistributedMatrixMultiplication {
             System.out.println("Obliczam mnożenie bloku macierzy, " + taskId + " na węźle: " + address);
             double[][] matrixA = generateMatrix(aRows, colsA, resultRowStart, 0);
             double[][] matrixB = generateMatrix(colsA, bCols, 0, resultColStart);
-
 
             int aRows = matrixA.length;
             int aCols = matrixA[0].length;
@@ -93,39 +91,31 @@ public class DistributedMatrixMultiplication {
         int resultRows = rowsA;
         int resultCols = colsB;
         double[][] result = new double[resultRows][resultCols];
-        List<Future<double[][]>> futures = new ArrayList<>();
         List<Member> members = new ArrayList<>(instance.getCluster().getMembers());
         int numMembers = members.size();
         int taskCounter = 0;
 
-
         for (int i = 0; i < rowsA; i += blockSize) {
             for(int j = 0; j < colsB; j += blockSize) {
+
                 int aBlockRowsEnd = Math.min(i + blockSize, rowsA);
                 int bBlockColsEnd = Math.min(j + blockSize, colsB);
-
                 String taskId = String.valueOf(taskCounter++);
-
                 MatrixMultiplicationTask task = new MatrixMultiplicationTask(colsA, i, j, taskId, aBlockRowsEnd - i, bBlockColsEnd - j, colsA );
                 //Distribute evenly between members
                 Future<double[][]> future = executorService.submitToMember(task, members.get(taskCounter % numMembers));
-                futures.add(future);
-            }
-        }
+                double[][] blockResult = future.get();
+                int rows = blockResult.length;
+                int cols = blockResult[0].length;
 
-        for (Future<double[][]> future : futures) {
-            double[][] blockResult = future.get();
-            int rows = blockResult.length;
-            int cols = blockResult[0].length;
-            int resultRowStart = Integer.parseInt(future.toString().split("resultRowStart=")[1].split(",")[0]);
-            int resultColStart = Integer.parseInt(future.toString().split("resultColStart=")[1].split(",")[0]);
-            for(int i= 0; i < rows; i++){
-                for(int j =0; j< cols; j++){
-                    result[resultRowStart+i][resultColStart+j] += blockResult[i][j];
+                for(int row = 0; row < rows; row++){
+                    for(int col =0; col< cols; col++){
+                        result[i+row][j+col] += blockResult[row][col];
+                    }
                 }
+
             }
         }
-
         return result;
     }
 
@@ -156,8 +146,9 @@ public class DistributedMatrixMultiplication {
             System.out.println("This node is the first member of the cluster. Starting distributed calculations.");
 
             // Sample matrices
-            int rows = 5000;
-            int cols = 5000;
+            int rows = 1000;
+            int cols = 1000;
+
             double[][] matrixA = new double[rows][cols];
             double[][] matrixB = new double[rows][cols];
             for (int i = 0; i < rows; i++) {
@@ -167,8 +158,8 @@ public class DistributedMatrixMultiplication {
                 }
             }
 
-
             int blockSize = 100;
+
 
             long startTime = System.currentTimeMillis();
             double[][] resultMatrix = multiplyMatricesDistributed(matrixA, matrixB, blockSize, executorService, instance);
