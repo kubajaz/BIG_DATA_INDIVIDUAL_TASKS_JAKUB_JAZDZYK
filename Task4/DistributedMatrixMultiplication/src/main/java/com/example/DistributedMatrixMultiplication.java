@@ -38,21 +38,22 @@ public class DistributedMatrixMultiplication {
         private int commonSize;
         private int resultRowStart;
         private int resultColStart;
-        private HazelcastInstance instance;
         private String taskId;
 
-        public MatrixMultiplicationTask(MatrixBlock aBlock, MatrixBlock bBlock, int commonSize, int resultRowStart, int resultColStart, HazelcastInstance instance, String taskId) {
+
+        public MatrixMultiplicationTask(MatrixBlock aBlock, MatrixBlock bBlock, int commonSize, int resultRowStart, int resultColStart, String taskId) {
             this.aBlock = aBlock;
             this.bBlock = bBlock;
             this.commonSize = commonSize;
             this.resultRowStart = resultRowStart;
             this.resultColStart = resultColStart;
-            this.instance = instance;
             this.taskId = taskId;
+
         }
 
         @Override
         public MatrixBlock call() {
+            HazelcastInstance instance = Hazelcast.getHazelcastInstanceByName("dev");
             String address = instance.getCluster().getLocalMember().getAddress().toString();
             System.out.println("Obliczam mnożenie bloku macierzy, " + taskId + " na węźle: " + address);
 
@@ -94,6 +95,7 @@ public class DistributedMatrixMultiplication {
         int numMembers = members.size();
         int taskCounter = 0;
 
+
         for (int i = 0; i < rowsA; i += blockSize) {
             for(int j = 0; j < colsB; j += blockSize) {
 
@@ -106,7 +108,7 @@ public class DistributedMatrixMultiplication {
                 MatrixBlock aBlock = new MatrixBlock(aBlockData,i, 0);
                 MatrixBlock bBlock = new MatrixBlock(bBlockData, 0,j);
 
-                MatrixMultiplicationTask task = new MatrixMultiplicationTask(aBlock, bBlock, colsA, i, j, instance, taskId);
+                MatrixMultiplicationTask task = new MatrixMultiplicationTask(aBlock, bBlock, colsA, i, j, taskId);
                 //Distribute evenly between members
                 Future<MatrixBlock> future = executorService.submitToMember(task, members.get(taskCounter % numMembers));
                 futures.add(future);
@@ -156,13 +158,11 @@ public class DistributedMatrixMultiplication {
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         IExecutorService executorService = instance.getExecutorService("default");
         System.out.println("Node Started: " + instance.getCluster().getLocalMember().getAddress());
-
         // Wait for the cluster to have at least two members
         while (instance.getCluster().getMembers().size() < 2) {
             System.out.println("Waiting for the second member to join the cluster...");
             Thread.sleep(1000);
         }
-
         if (instance.getCluster().getMembers().stream().findFirst().get().localMember()) {
             System.out.println("This node is the first member of the cluster. Starting distributed calculations.");
 
@@ -177,6 +177,7 @@ public class DistributedMatrixMultiplication {
                     matrixB[i][j] = Math.random();
                 }
             }
+
             int blockSize = 100;
 
             long startTime = System.currentTimeMillis();
