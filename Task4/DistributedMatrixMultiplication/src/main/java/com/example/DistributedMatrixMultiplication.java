@@ -1,5 +1,3 @@
-package com.example;
-
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IExecutorService;
@@ -33,7 +31,6 @@ public class DistributedMatrixMultiplication {
             this.colsA = colsA;
         }
 
-
         @Override
         public double[][] call() {
             HazelcastInstance instance = null;
@@ -49,6 +46,7 @@ public class DistributedMatrixMultiplication {
             System.out.println("Obliczam mnożenie bloku macierzy, " + taskId + " na węźle: " + address);
             double[][] matrixA = generateMatrix(aRows, colsA, resultRowStart, 0);
             double[][] matrixB = generateMatrix(colsA, bCols, 0, resultColStart);
+
 
             int aRows = matrixA.length;
             int aCols = matrixA[0].length;
@@ -67,6 +65,7 @@ public class DistributedMatrixMultiplication {
                     }
                 }
             }
+            System.out.println("Zakończono mnożenie bloku macierzy, " + taskId + " na węźle: " + address);
             return result;
         }
         private double[][] generateMatrix(int rows, int cols, int rowStart, int colStart){
@@ -98,10 +97,12 @@ public class DistributedMatrixMultiplication {
 
         for (int i = 0; i < rowsA; i += blockSize) {
             for (int j = 0; j < colsB; j += blockSize) {
+
                 int aBlockRowsEnd = Math.min(i + blockSize, rowsA);
                 int bBlockColsEnd = Math.min(j + blockSize, colsB);
 
                 String taskId = String.valueOf(taskCounter++);
+
                 MatrixMultiplicationTask task = new MatrixMultiplicationTask(colsA, i, j, taskId, aBlockRowsEnd - i, bBlockColsEnd - j, colsA );
                 //Distribute evenly between members
                 Future<double[][]> future = executorService.submitToMember(task, members.get(taskCounter % numMembers));
@@ -110,17 +111,14 @@ public class DistributedMatrixMultiplication {
                 int rows = blockResult.length;
                 int cols = blockResult[0].length;
 
-
                 for(int row = 0; row < rows; row++){
                     for(int col =0; col< cols; col++){
                         result[i+row][j+col] += blockResult[row][col];
                     }
                 }
-
             }
         }
-
-
+        System.out.println("Wszystkie bloki macierzy zostały obliczone.");
         return result;
     }
 
@@ -160,8 +158,6 @@ public class DistributedMatrixMultiplication {
                     matrixB[i][j] = Math.random();
                 }
             }
-
-
             int blockSize = 100;
 
             long startTime = System.currentTimeMillis();
