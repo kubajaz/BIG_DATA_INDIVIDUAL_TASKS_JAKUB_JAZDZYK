@@ -36,7 +36,16 @@ public class DistributedMatrixMultiplication {
 
         @Override
         public double[][] call() {
-            HazelcastInstance instance = Hazelcast.getHazelcastInstanceByName("dev");
+
+            HazelcastInstance instance = null;
+            while (instance == null) {
+                instance = Hazelcast.getHazelcastInstanceByName("dev");
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             String address = instance.getCluster().getLocalMember().getAddress().toString();
             System.out.println("Obliczam mnożenie bloku macierzy, " + taskId + " na węźle: " + address);
             double[][] matrixA = generateMatrix(aRows, colsA, resultRowStart, 0);
@@ -147,9 +156,8 @@ public class DistributedMatrixMultiplication {
             System.out.println("This node is the first member of the cluster. Starting distributed calculations.");
 
             // Sample matrices
-            int rows = 2000;
-            int cols = 2000;
-
+            int rows = 5000;
+            int cols = 5000;
             double[][] matrixA = new double[rows][cols];
             double[][] matrixB = new double[rows][cols];
             for (int i = 0; i < rows; i++) {
@@ -158,6 +166,7 @@ public class DistributedMatrixMultiplication {
                     matrixB[i][j] = Math.random();
                 }
             }
+
 
             int blockSize = 100;
 
