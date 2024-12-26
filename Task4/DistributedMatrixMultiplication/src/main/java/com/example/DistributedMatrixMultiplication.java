@@ -1,3 +1,5 @@
+package com.example;
+
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IExecutorService;
@@ -10,7 +12,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class DistributedMatrixMultiplication {
-
 
     static class MatrixMultiplicationTask implements Callable<double[][]>, Serializable {
         private int commonSize;
@@ -31,6 +32,7 @@ public class DistributedMatrixMultiplication {
             this.colsA = colsA;
         }
 
+
         @Override
         public double[][] call() {
             HazelcastInstance instance = null;
@@ -46,7 +48,6 @@ public class DistributedMatrixMultiplication {
             System.out.println("Obliczam mnożenie bloku macierzy, " + taskId + " na węźle: " + address);
             double[][] matrixA = generateMatrix(aRows, colsA, resultRowStart, 0);
             double[][] matrixB = generateMatrix(colsA, bCols, 0, resultColStart);
-
 
             int aRows = matrixA.length;
             int aCols = matrixA[0].length;
@@ -79,6 +80,7 @@ public class DistributedMatrixMultiplication {
         }
     }
     public static double[][] multiplyMatricesDistributed(double[][] a, double[][] b, int blockSize, IExecutorService executorService, HazelcastInstance instance) throws ExecutionException, InterruptedException {
+        System.out.println("Rozpoczęto metodę multiplyMatricesDistributed");
         int rowsA = a.length;
         int colsA = a[0].length;
         int rowsB = b.length;
@@ -94,23 +96,18 @@ public class DistributedMatrixMultiplication {
         int numMembers = members.size();
         int taskCounter = 0;
 
-
+        List<Future<double[][]>> futures = new ArrayList<>();
         for (int i = 0; i < rowsA; i += blockSize) {
             for (int j = 0; j < colsB; j += blockSize) {
-
                 int aBlockRowsEnd = Math.min(i + blockSize, rowsA);
                 int bBlockColsEnd = Math.min(j + blockSize, colsB);
-
                 String taskId = String.valueOf(taskCounter++);
-
                 MatrixMultiplicationTask task = new MatrixMultiplicationTask(colsA, i, j, taskId, aBlockRowsEnd - i, bBlockColsEnd - j, colsA );
-                //Distribute evenly between members
-                Future<double[][]> future = executorService.submitToMember(task, members.get(taskCounter % numMembers));
 
+                Future<double[][]> future = executorService.submitToMember(task, members.get(taskCounter % numMembers));
                 double[][] blockResult = future.get();
                 int rows = blockResult.length;
                 int cols = blockResult[0].length;
-
                 for(int row = 0; row < rows; row++){
                     for(int col =0; col< cols; col++){
                         result[i+row][j+col] += blockResult[row][col];
@@ -118,10 +115,9 @@ public class DistributedMatrixMultiplication {
                 }
             }
         }
-        System.out.println("Wszystkie bloki macierzy zostały obliczone.");
+        System.out.println("Zakończono metodę multiplyMatricesDistributed");
         return result;
     }
-
 
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
@@ -158,6 +154,8 @@ public class DistributedMatrixMultiplication {
                     matrixB[i][j] = Math.random();
                 }
             }
+
+
             int blockSize = 100;
 
             long startTime = System.currentTimeMillis();
