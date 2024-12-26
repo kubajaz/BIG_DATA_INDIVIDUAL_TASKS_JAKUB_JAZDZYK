@@ -95,18 +95,21 @@ public class DistributedMatrixMultiplication {
         int numMembers = members.size();
         int taskCounter = 0;
 
-        for (int i = 0; i < rowsA; i += blockSize) {
-            for(int j = 0; j < colsB; j += blockSize) {
 
+        for (int i = 0; i < rowsA; i += blockSize) {
+            for (int j = 0; j < colsB; j += blockSize) {
                 int aBlockRowsEnd = Math.min(i + blockSize, rowsA);
                 int bBlockColsEnd = Math.min(j + blockSize, colsB);
+
                 String taskId = String.valueOf(taskCounter++);
                 MatrixMultiplicationTask task = new MatrixMultiplicationTask(colsA, i, j, taskId, aBlockRowsEnd - i, bBlockColsEnd - j, colsA );
                 //Distribute evenly between members
                 Future<double[][]> future = executorService.submitToMember(task, members.get(taskCounter % numMembers));
+
                 double[][] blockResult = future.get();
                 int rows = blockResult.length;
                 int cols = blockResult[0].length;
+
 
                 for(int row = 0; row < rows; row++){
                     for(int col =0; col< cols; col++){
@@ -116,6 +119,8 @@ public class DistributedMatrixMultiplication {
 
             }
         }
+
+
         return result;
     }
 
@@ -126,7 +131,6 @@ public class DistributedMatrixMultiplication {
         if (localAddress == null || localAddress.isEmpty()) {
             System.setProperty("hazelcast.local.localAddress", "192.168.1.194");
         }
-
         Config config = new Config();
         config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
         config.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true)
@@ -148,7 +152,6 @@ public class DistributedMatrixMultiplication {
             // Sample matrices
             int rows = 1000;
             int cols = 1000;
-
             double[][] matrixA = new double[rows][cols];
             double[][] matrixB = new double[rows][cols];
             for (int i = 0; i < rows; i++) {
@@ -158,8 +161,8 @@ public class DistributedMatrixMultiplication {
                 }
             }
 
-            int blockSize = 100;
 
+            int blockSize = 100;
 
             long startTime = System.currentTimeMillis();
             double[][] resultMatrix = multiplyMatricesDistributed(matrixA, matrixB, blockSize, executorService, instance);
