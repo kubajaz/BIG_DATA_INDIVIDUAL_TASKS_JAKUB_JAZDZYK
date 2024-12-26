@@ -12,6 +12,7 @@ import java.util.concurrent.Future;
 
 public class DistributedMatrixMultiplication {
 
+    // Klasa reprezentująca zadanie mnożenia fragmentu macierzy
     static class MatrixMultiplicationTask implements Callable<double[][]>, Serializable {
         private final double[][] matrixA;
         private final double[][] matrixB;
@@ -49,6 +50,7 @@ public class DistributedMatrixMultiplication {
         }
     }
 
+    // Metoda rozproszonego mnożenia macierzy
     public static double[][] multiplyMatricesDistributed(double[][] a, double[][] b, int blockSize, IExecutorService executorService, List<Member> members) throws ExecutionException, InterruptedException {
         int rowsA = a.length;
         int colsA = a[0].length;
@@ -76,6 +78,7 @@ public class DistributedMatrixMultiplication {
             }
         }
 
+        // Pobieranie wyników z zadań
         for (int f = 0; f < futures.size(); f++) {
             Future<double[][]> future = futures.get(f);
             double[][] partialResult = future.get();
@@ -95,36 +98,45 @@ public class DistributedMatrixMultiplication {
         return result;
     }
 
+    // Metoda główna
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         Config config = new Config();
         config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
         config.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true)
-                .addMember("192.168.1.194")
-                .addMember("192.168.1.253");
+                .addMember("192.168.1.194") // Adresy członków klastra
+                .addMember("192.168.1.44");
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
         IExecutorService executorService = instance.getExecutorService("default");
 
+        // Oczekiwanie na dołączenie węzłów
         while (instance.getCluster().getMembers().size() < 2) {
             System.out.println("Waiting for other members...");
             Thread.sleep(1000);
         }
 
-        int size = 1000;
-        double[][] matrixA = new double[size][size];
-        double[][] matrixB = new double[size][size];
+        try {
+            int size = 1000; // Rozmiar macierzy
+            double[][] matrixA = new double[size][size];
+            double[][] matrixB = new double[size][size];
 
-        Random rand = new Random();
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                matrixA[i][j] = rand.nextDouble();
-                matrixB[i][j] = rand.nextDouble();
+            Random rand = new Random();
+            for (int i = 0; i < size; i++) {
+                for (int j = 0; j < size; j++) {
+                    matrixA[i][j] = rand.nextDouble();
+                    matrixB[i][j] = rand.nextDouble();
+                }
             }
+
+            long startTime = System.currentTimeMillis();
+            double[][] result = multiplyMatricesDistributed(matrixA, matrixB, 200, executorService, new ArrayList<>(instance.getCluster().getMembers()));
+            long endTime = System.currentTimeMillis();
+
+            System.out.println("Distributed multiplication completed in: " + (endTime - startTime) + "ms");
+        } catch (Exception e) {
+            System.err.println("An error occurred during matrix multiplication: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            instance.shutdown();
         }
-
-        long startTime = System.currentTimeMillis();
-        double[][] result = multiplyMatricesDistributed(matrixA, matrixB, 100, executorService, new ArrayList<>(instance.getCluster().getMembers()));
-        long endTime = System.currentTimeMillis();
-
-        System.out.println("Distributed multiplication completed in: " + (endTime - startTime) + "ms");
     }
 }
