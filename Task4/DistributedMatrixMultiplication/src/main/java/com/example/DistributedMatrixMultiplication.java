@@ -93,9 +93,6 @@ public class DistributedMatrixMultiplication {
         List<Member> members = new ArrayList<>(instance.getCluster().getMembers());
         int numMembers = members.size();
         int taskCounter = 0;
-        if(numMembers < 2){
-            throw new IllegalArgumentException("Cluster must have at least two members to do a distributed matrix multiplication");
-        }
 
         for (int i = 0; i < rowsA; i += blockSize) {
             for(int j = 0; j < colsB; j += blockSize) {
@@ -116,13 +113,11 @@ public class DistributedMatrixMultiplication {
             }
         }
 
-
         for (Future<MatrixBlock> future : futures) {
             MatrixBlock blockResult = future.get();
             double[][] blockData = blockResult.getData();
             int resultRowStart = blockResult.getRowStart();
             int resultColStart = blockResult.getColStart();
-
 
             for (int i = 0; i < blockData.length; i++) {
                 for (int j = 0; j < blockData[0].length; j++) {
@@ -162,16 +157,18 @@ public class DistributedMatrixMultiplication {
         IExecutorService executorService = instance.getExecutorService("default");
         System.out.println("Node Started: " + instance.getCluster().getLocalMember().getAddress());
 
+        // Wait for the cluster to have at least two members
+        while (instance.getCluster().getMembers().size() < 2) {
+            System.out.println("Waiting for the second member to join the cluster...");
+            Thread.sleep(1000);
+        }
 
-        // Check if this is the first member of the cluster
         if (instance.getCluster().getMembers().stream().findFirst().get().localMember()) {
             System.out.println("This node is the first member of the cluster. Starting distributed calculations.");
 
             // Sample matrices
             int rows = 5000;
             int cols = 5000;
-
-
             double[][] matrixA = new double[rows][cols];
             double[][] matrixB = new double[rows][cols];
             for (int i = 0; i < rows; i++) {
@@ -181,7 +178,6 @@ public class DistributedMatrixMultiplication {
                 }
             }
             int blockSize = 100;
-
 
             long startTime = System.currentTimeMillis();
             double[][] resultMatrix = multiplyMatricesDistributed(matrixA, matrixB, blockSize, executorService, instance);
