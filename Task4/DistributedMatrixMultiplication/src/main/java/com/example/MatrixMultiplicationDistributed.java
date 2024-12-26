@@ -1,18 +1,16 @@
-package org.example.algorithms;
+package com.example;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.cluster.Member;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
 
 public class MatrixMultiplicationDistributed {
 
@@ -116,21 +114,12 @@ public class MatrixMultiplicationDistributed {
         return result;
     }
 
-
     public static void main(String[] args) throws ExecutionException, InterruptedException {
-        int[][] matrixA = {
-                {1, 2, 3, 4},
-                {5, 6, 7, 8},
-                {9, 10, 11, 12},
-                {13, 14, 15, 16}
-        };
+        int matrixSize = 100; // Zdefiniowanie rozmiaru macierzy
 
-        int[][] matrixB = {
-                {1, 2, 3},
-                {4, 5, 6},
-                {7, 8, 9},
-                {10, 11, 12}
-        };
+        // Generowanie losowych macierzy 100x100
+        int[][] matrixA = generateRandomMatrix(matrixSize, matrixSize);
+        int[][] matrixB = generateRandomMatrix(matrixSize, matrixSize);
 
         String thisNodeAddress = "192.168.1.194"; // Dla komputera 1
         String otherNodeAddress = "192.168.1.44"; // Dla komputera 2
@@ -159,16 +148,21 @@ public class MatrixMultiplicationDistributed {
 
         long duration = (endTime - startTime) / 1_000_000; // Przeliczenie na milisekundy
         System.out.println("Wynik rozproszonego mnożenia macierzy:");
-
-        for (int[] row : resultDistributed) {
-            for (int val : row) {
-                System.out.print(val + " ");
-            }
-            System.out.println();
-        }
         System.out.println("Czas wykonania: " + duration + " ms");
 
         distributedMultiply.hazelcastInstance.shutdown();
-
     }
+
+    // Funkcja generująca losową macierz
+    public static int[][] generateRandomMatrix(int rows, int cols) {
+        Random random = new Random();
+        int[][] matrix = new int[rows][cols];
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                matrix[i][j] = random.nextInt(10); // Losowe wartości od 0 do 9
+            }
+        }
+        return matrix;
+    }
+
 }
