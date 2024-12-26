@@ -12,45 +12,58 @@ import java.util.concurrent.Future;
 
 public class DistributedMatrixMultiplication {
 
-    // Klasa reprezentująca zadanie mnożenia fragmentu macierzy
     static class MatrixMultiplicationTask implements Callable<double[][]>, Serializable {
-        private final double[][] matrixA;
-        private final double[][] matrixB;
         private final int rowStart;
         private final int rowEnd;
         private final int colStart;
         private final int colEnd;
+        private final int colsA;
 
-        public MatrixMultiplicationTask(double[][] matrixA, double[][] matrixB, int rowStart, int rowEnd, int colStart, int colEnd) {
-            this.matrixA = matrixA;
-            this.matrixB = matrixB;
+        public MatrixMultiplicationTask(int rowStart, int rowEnd, int colStart, int colEnd, int colsA) {
             this.rowStart = rowStart;
             this.rowEnd = rowEnd;
             this.colStart = colStart;
             this.colEnd = colEnd;
+            this.colsA = colsA;
         }
-
         @Override
         public double[][] call() {
+            HazelcastInstance instance = null;
+            while (instance == null) {
+                instance = Hazelcast.getHazelcastInstanceByName("dev");
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            double[][] matrixA = generateMatrix(rowEnd - rowStart, colsA, rowStart, 0);
+            double[][] matrixB = generateMatrix(colsA, colEnd - colStart, 0, colStart);
             int rows = rowEnd - rowStart;
             int cols = colEnd - colStart;
-            int commonSize = matrixA[0].length;
+            int commonSize = colsA;
 
             double[][] result = new double[rows][cols];
-
-            for (int i = rowStart; i < rowEnd; i++) {
-                for (int j = colStart; j < colEnd; j++) {
+            for (int i = 0; i < rows; i++) {
+                for (int j = 0; j < cols; j++) {
                     for (int k = 0; k < commonSize; k++) {
-                        result[i - rowStart][j - colStart] += matrixA[i][k] * matrixB[k][j];
+                        result[i][j] += matrixA[i][k] * matrixB[k][j];
                     }
                 }
             }
-
             return result;
+        }
+        private double[][] generateMatrix(int rows, int cols, int rowStart, int colStart){
+            double[][] matrix = new double[rows][cols];
+            for(int i= 0; i < rows; i++){
+                for(int j= 0; j< cols; j++){
+                    matrix[i][j] = Math.random();
+                }
+            }
+            return matrix;
         }
     }
 
-    // Metoda rozproszonego mnożenia macierzy
     public static double[][] multiplyMatricesDistributed(double[][] a, double[][] b, int blockSize, IExecutorService executorService, List<Member> members) throws ExecutionException, InterruptedException {
         int rowsA = a.length;
         int colsA = a[0].length;
@@ -62,39 +75,26 @@ public class DistributedMatrixMultiplication {
         }
 
         double[][] result = new double[rowsA][colsB];
-        List<Future<double[][]>> futures = new ArrayList<>();
         int numMembers = members.size();
         int taskCounter = 0;
+
 
         for (int i = 0; i < rowsA; i += blockSize) {
             for (int j = 0; j < colsB; j += blockSize) {
                 int rowEnd = Math.min(i + blockSize, rowsA);
                 int colEnd = Math.min(j + blockSize, colsB);
-
-                MatrixMultiplicationTask task = new MatrixMultiplicationTask(a, b, i, rowEnd, j, colEnd);
+                MatrixMultiplicationTask task = new MatrixMultiplicationTask(i, rowEnd, j, colEnd, colsA);
                 Member targetMember = members.get(taskCounter % numMembers);
-                futures.add(executorService.submitToMember(task, targetMember));
+                Future<double[][]> future = executorService.submitToMember(task, targetMember);
+                double[][] partialResult = future.get();
+                for (int row = 0; row < partialResult.length; row++) {
+                    for (int col = 0; col < partialResult[0].length; col++) {
+                        result[i + row][j + col] = partialResult[row][col];
+                    }
+                }
                 taskCounter++;
             }
         }
-
-        // Pobieranie wyników z zadań
-        for (int f = 0; f < futures.size(); f++) {
-            Future<double[][]> future = futures.get(f);
-            double[][] partialResult = future.get();
-
-            int i = (f / (colsB / blockSize)) * blockSize;
-            int j = (f % (colsB / blockSize)) * blockSize;
-            int rows = partialResult.length;
-            int cols = partialResult[0].length;
-
-            for (int row = 0; row < rows; row++) {
-                for (int col = 0; col < cols; col++) {
-                    result[i + row][j + col] = partialResult[row][col];
-                }
-            }
-        }
-
         return result;
     }
 
@@ -121,7 +121,6 @@ public class DistributedMatrixMultiplication {
             int size = 1200; // Rozmiar macierzy
             double[][] matrixA = new double[size][size];
             double[][] matrixB = new double[size][size];
-
             Random rand = new Random();
             for (int i = 0; i < size; i++) {
                 for (int j = 0; j < size; j++) {
