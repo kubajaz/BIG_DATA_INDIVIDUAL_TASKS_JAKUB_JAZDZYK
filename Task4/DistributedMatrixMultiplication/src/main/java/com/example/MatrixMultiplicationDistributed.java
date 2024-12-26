@@ -1,8 +1,10 @@
-package com.example;
+package org.example.algorithms;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.cluster.Member;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,12 +13,16 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+
 public class MatrixMultiplicationDistributed {
 
     private final HazelcastInstance hazelcastInstance;
     private final ExecutorService executorService;
+    private final String thisNodeAddress;
+
 
     public MatrixMultiplicationDistributed(String thisNodeAddress, String otherNodeAddress) {
+        this.thisNodeAddress = thisNodeAddress;
         Config config = new Config();
         config.getNetworkConfig().getJoin().getTcpIpConfig().addMember(thisNodeAddress).addMember(otherNodeAddress).setEnabled(true);
         config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
@@ -24,6 +30,7 @@ public class MatrixMultiplicationDistributed {
         this.hazelcastInstance = Hazelcast.newHazelcastInstance(config);
         this.executorService = hazelcastInstance.getExecutorService("matrix-multiply");
     }
+
 
     public static class MatrixSlice implements Serializable {
         public int[][] matrix;
@@ -46,7 +53,6 @@ public class MatrixMultiplicationDistributed {
         private final int[][] matrixB;
         private final int colsB;
         private final int rowsA;
-
 
         public MatrixMultiplicationTask(MatrixSlice matrixASlice, int[][] matrixB) {
             this.matrixASlice = matrixASlice;
@@ -94,7 +100,6 @@ public class MatrixMultiplicationDistributed {
             futures.add(executorService.submit(task));
         }
 
-
         int[][] result = new int[rowsA][colsB];
 
         for (Future<MatrixSlice> future : futures) {
@@ -110,6 +115,7 @@ public class MatrixMultiplicationDistributed {
 
         return result;
     }
+
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         int[][] matrixA = {
@@ -129,7 +135,23 @@ public class MatrixMultiplicationDistributed {
         String thisNodeAddress = "192.168.1.194"; // Dla komputera 1
         String otherNodeAddress = "192.168.1.44"; // Dla komputera 2
 
-        MatrixMultiplicationDistributed distributedMultiply = new MatrixMultiplicationDistributed(thisNodeAddress, otherNodeAddress);
+
+        MatrixMultiplicationDistributed distributedMultiply = new MatrixMultiplicationDistributed(thisNodeAddress,otherNodeAddress);
+
+        // Poczekaj, aż klaster będzie gotowy, czyli aż oba węzły się połączą
+        if (distributedMultiply.hazelcastInstance.getCluster().getMembers().size() < 2) {
+            System.out.println("Oczekiwanie na dołączenie drugiego węzła...");
+            while (distributedMultiply.hazelcastInstance.getCluster().getMembers().size() < 2) {
+                try {
+                    Thread.sleep(1000); // Czekaj sekundę przed ponownym sprawdzeniem
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            System.out.println("Klaster jest gotowy, rozpoczynam obliczenia.");
+        } else {
+            System.out.println("Klaster jest gotowy, rozpoczynam obliczenia.");
+        }
 
         long startTime = System.nanoTime(); // Rozpoczęcie pomiaru czasu
         int[][] resultDistributed = distributedMultiply.multiply(matrixA, matrixB);
@@ -137,7 +159,7 @@ public class MatrixMultiplicationDistributed {
 
         long duration = (endTime - startTime) / 1_000_000; // Przeliczenie na milisekundy
         System.out.println("Wynik rozproszonego mnożenia macierzy:");
-        // Wypisz wynik
+
         for (int[] row : resultDistributed) {
             for (int val : row) {
                 System.out.print(val + " ");
@@ -145,6 +167,8 @@ public class MatrixMultiplicationDistributed {
             System.out.println();
         }
         System.out.println("Czas wykonania: " + duration + " ms");
+
         distributedMultiply.hazelcastInstance.shutdown();
+
     }
 }
