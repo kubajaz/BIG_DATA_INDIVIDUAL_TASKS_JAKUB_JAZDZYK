@@ -103,9 +103,12 @@ public class DistributedMatrixMultiplication {
         Config config = new Config();
         config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
         config.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true)
-                .addMember("192.168.1.194") // Adresy członków klastra
+                .addMember("192.168.1.194")
                 .addMember("192.168.1.44");
+        config.setProperty("hazelcast.operation.call.timeout.millis", "120000"); // Zwiększenie limitu czasu operacji
+        config.setProperty("hazelcast.operation.response.timeout.millis", "120000"); // Zwiększenie czasu odpowiedzi
         HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
+
         IExecutorService executorService = instance.getExecutorService("default");
 
         // Oczekiwanie na dołączenie węzłów
