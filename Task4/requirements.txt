@@ -1,2 +1,0 @@
-hazelcast-python-client==5.5.0
-numpy==2.2.1
