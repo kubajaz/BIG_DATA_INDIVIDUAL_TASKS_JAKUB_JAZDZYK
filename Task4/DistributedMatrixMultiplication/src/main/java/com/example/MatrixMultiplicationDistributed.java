@@ -115,14 +115,14 @@ public class MatrixMultiplicationDistributed {
     }
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
-        int matrixSize = 100; // Zdefiniowanie rozmiaru macierzy
+        int matrixSize = 2000; // Zdefiniowanie rozmiaru macierzy
 
         // Generowanie losowych macierzy 100x100
         int[][] matrixA = generateRandomMatrix(matrixSize, matrixSize);
         int[][] matrixB = generateRandomMatrix(matrixSize, matrixSize);
 
-        String thisNodeAddress = "192.168.1.194"; // Dla komputera 1
-        String otherNodeAddress = "192.168.1.44"; // Dla komputera 2
+        String thisNodeAddress = "192.168.1.44"; // Dla komputera 1
+        String otherNodeAddress = "192.168.1.194"; // Dla komputera 2
 
 
         MatrixMultiplicationDistributed distributedMultiply = new MatrixMultiplicationDistributed(thisNodeAddress,otherNodeAddress);
